@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Text Generator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom font */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f7f9fb;
+      }
+      /* Custom styling for the main container */
+      .card {
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        background-color: white;
+        transition: all 0.3s ease;
+      }
+      /* Style for the generate button */
+      #generateButton {
+        transition: background-color 0.15s ease, transform 0.1s ease;
+      }
+      #generateButton:hover:not(:disabled) {
+        background-color: #1a73e8;
+        transform: translateY(-1px);
+      }
+      #generateButton:disabled {
+        cursor: not-allowed;
+        background-color: #9cb3cc;
+      }
+      .loading-spinner {
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="p-4 sm:p-8 min-h-screen flex items-start justify-center">
+    <div class="w-full max-w-4xl mt-10 card rounded-2xl p-6 sm:p-10">
+      <h1 class="text-4xl font-extrabold text-gray-800 mb-2">
+        Creative AI Writer
+      </h1>
+      <p class="text-gray-600 mb-8">
+        Enter a prompt and let the model generate text for you. This application
+        uses the Gemini API.
+      </p>
+
+      <!-- Input Area -->
+      <div class="mb-6">
+        <label
+          for="promptInput"
+          class="block text-sm font-medium text-gray-700 mb-2"
+          >Your Prompt:</label
+        >
+        <textarea
+          id="promptInput"
+          rows="4"
+          class="w-full p-3 border border-gray-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 text-gray-800"
+          placeholder="e.g., Write a short story about a robot who discovers music."
+        ></textarea>
+      </div>
+
+      <!-- Action Button -->
+      <button
+        id="generateButton"
+        onclick="generateText()"
+        class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-150 ease-in-out flex items-center justify-center"
+      >
+        <span id="buttonText">Generate Text</span>
+        <div
+          id="loadingIndicator"
+          class="hidden loading-spinner w-5 h-5 border-2 border-white rounded-full ml-3"
+        ></div>
+      </button>
+
+      <!-- Output Area -->
+      <div id="outputContainer" class="mt-10 pt-6 border-t border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+          Generated Response:
+        </h2>
+        <div
+          id="generatedText"
+          class="p-4 bg-gray-50 rounded-xl text-gray-800 whitespace-pre-wrap min-h-[100px] border border-gray-100"
+        >
+          The AI's generated content will appear here after clicking 'Generate
+          Text'.
+        </div>
+
+        <!-- Sources Area (for grounded content) -->
+        <div id="sourcesContainer" class="hidden mt-4">
+          <p class="text-sm font-medium text-gray-700 mb-2">
+            Sources (Google Search Grounding):
+          </p>
+          <ul
+            id="sourcesList"
+            class="list-disc list-inside text-sm text-gray-600 space-y-1 pl-4"
+          >
+            <!-- Sources will be injected here -->
+          </ul>
+        </div>
+
+        <!-- Error Message Box -->
+        <div
+          id="errorBox"
+          class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl"
+          role="alert"
+        >
+          <p id="errorMessage"></p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function generateText() {
+        const promptInput = document.getElementById("promptInput");
+        const generatedText = document.getElementById("generatedText");
+        const errorBox = document.getElementById("errorBox");
+        const errorMessage = document.getElementById("errorMessage");
+        const generateButton = document.getElementById("generateButton");
+        const buttonText = document.getElementById("buttonText");
+        const loadingIndicator = document.getElementById("loadingIndicator");
+
+        const userQuery = promptInput.value.trim();
+        if (!userQuery) {
+          errorBox.classList.remove("hidden");
+          errorMessage.textContent = "Please enter a prompt.";
+          return;
+        }
+
+        // UI feedback
+        generateButton.disabled = true;
+        buttonText.textContent = "Generating...";
+        loadingIndicator.classList.remove("hidden");
+        errorBox.classList.add("hidden");
+
+        try {
+          const res = await fetch("http://localhost:5000/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: userQuery }),
+          });
+
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+
+          generatedText.textContent = data.response;
+        } catch (err) {
+          errorBox.classList.remove("hidden");
+          errorMessage.textContent = "Error: " + err.message;
+        } finally {
+          generateButton.disabled = false;
+          buttonText.textContent = "Generate Text";
+          loadingIndicator.classList.add("hidden");
+        }
+      }
+    </script>
+  </body>
+</html>
